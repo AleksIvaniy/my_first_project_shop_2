@@ -4,34 +4,22 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
+from . filters import ProductFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
+from . permissions import *
+from rest_framework import permissions
 
 
-
-class ProductApiView(APIView):
-    permission_classes = []
-
-    def get(self, request):
-        products = Product.objects.all()
-        data = {
-            'products': ProductSerializer(products, many=True).data
-        }
-        return Response(data=data, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        serializer = ProductSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(data=serializer.data, status=status.HTTP_201_CREATED)
-
-class ProductDetailApiView(APIView):
-    permission_classes = []
-    def get(self, request, pk):
-        product = get_object_or_404(Product, id=pk)
-        data = {
-            'product': ProductSerializer(product, many=False).data
-        }
-        return Response(data=data, status=status.HTTP_200_OK)
+class ProductViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class =ProductFilter
+    search_fields = ['name', 'description']
+    ordering_fields = ['price']
+    permission_classes = [IsAdminOrReadOnly]
 
     def patch(self, request, pk):
         product = get_object_or_404(Product, id=pk)
@@ -40,26 +28,27 @@ class ProductDetailApiView(APIView):
         serializer.save()
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    def delete(self, request, pk):
-        product = get_object_or_404(Product, id=pk)
-        product.delete()
-        return Response(data={"msg": "Product deleted!"}, status=status.HTTP_204_NO_CONTENT)
-
-
-class AuthApiView(APIView):
-    permission_classes = []
     def post(self, request):
-        from django.contrib.auth import authenticate, login
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return Response(data={'msg': 'logined successfully'}, status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_401_UNAUTHORIZED)
+        serializer = ProductSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+
+# class AuthApiView(APIView):
+#     permission_classes = []
+#     def post(self, request):
+#         from django.contrib.auth import authenticate, login
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+#         user = authenticate(username=username, password=password)
+#         if user is not None:
+#             login(request, user)
+#             return Response(data={'msg': 'logined successfully'}, status=status.HTTP_200_OK)
+#         return Response(status=status.HTTP_401_UNAUTHORIZED)
 
 class ProfileApiView(APIView):
-    permission_classes = []
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
     def get(self, request):
         if request.user.is_authenticated:
             data = UserSerializer(request.user, many=False).data
@@ -100,3 +89,68 @@ class ProfileApiView(APIView):
             return Response(data={'msg': 'Your account successfully deactivated!'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(data={'msg': 'You must login!'}, status=status.HTTP_401_UNAUTHORIZED)
+
+class ProfileSuperUserApiView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            data = UserSerializer(request.user, many=False).data
+            return Response(data=data, status=status.HTTP_200_OK)
+        else:
+            return Response(data={'msg': 'You must login!'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    def post(self, request):
+        from django.db.utils import IntegrityError
+        username = request.data.get('username')
+        fn = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        password = request.data.get('password')
+        email = request.data.get('email')
+        try:
+            user = User.objects.create_superuser(username=username, first_name=fn, last_name=last_name, password=password,
+                                            email=email)
+            data = UserSerializer(user, many=False).data
+            return Response(data=data, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(data={'msg': 'This username is already taken'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+# class ProductApiView(APIView):
+#     permission_classes = []
+#
+#     def get(self, request):
+#         products = Product.objects.all()
+#         data = {
+#             'products': ProductSerializer(products, many=True).data
+#         }
+#         return Response(data=data, status=status.HTTP_200_OK)
+#
+#     def post(self, request):
+#         serializer = ProductSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+#
+# class ProductDetailApiView(APIView):
+#     permission_classes = []
+#     def get(self, request, pk):
+#         product = get_object_or_404(Product, id=pk)
+#         data = {
+#             'product': ProductSerializer(product, many=False).data
+#         }
+#         return Response(data=data, status=status.HTTP_200_OK)
+#
+#     def patch(self, request, pk):
+#         product = get_object_or_404(Product, id=pk)
+#         serializer = ProductSerializer(product, data=request.data, partial=True)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(data=serializer.data, status=status.HTTP_200_OK)
+#
+#     def delete(self, request, pk):
+#         product = get_object_or_404(Product, id=pk)
+#         product.delete()
+#         return Response(data={"msg": "Product deleted!"}, status=status.HTTP_204_NO_CONTENT)
