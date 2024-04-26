@@ -14,8 +14,8 @@ class ProductSerializer(ModelSerializer):
         fields = '__all__'
 
     category = CategorySerializer()
-    # brand = StringRelatedField()
-    # color = StringRelatedField()
+    brand = StringRelatedField()
+    color = StringRelatedField()
 
 
 class UserSerializer(ModelSerializer):

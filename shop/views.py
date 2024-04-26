@@ -9,7 +9,10 @@ from django.shortcuts import get_object_or_404
 from . filters import ProductFilter
 from rest_framework.filters import SearchFilter, OrderingFilter
 from . permissions import *
-from rest_framework import permissions
+from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly
+
+from rest_framework.decorators import api_view, permission_classes
+
 
 
 class ProductViewSet(ModelViewSet):
@@ -47,7 +50,9 @@ class ProductViewSet(ModelViewSet):
 #         return Response(status=status.HTTP_401_UNAUTHORIZED)
 
 class ProfileApiView(APIView):
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = []
+
+    #from rest_framework.decorators import api_view, permission_classes
 
     def get(self, request):
         if request.user.is_authenticated:
@@ -55,22 +60,6 @@ class ProfileApiView(APIView):
             return Response(data=data, status=status.HTTP_200_OK)
         else:
             return Response(data={'msg': 'You must login!'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    def post(self, request):
-        from django.db.utils import IntegrityError
-        username = request.data.get('username')
-        fn = request.data.get('first_name')
-        last_name = request.data.get('last_name')
-        password = request.data.get('password')
-        email = request.data.get('email')
-        try:
-            user = User.objects.create_user(username=username, first_name=fn, last_name=last_name, password=password,
-                                            email=email)
-            data = UserSerializer(user, many=False).data
-            return Response(data=data, status=status.HTTP_201_CREATED)
-        except IntegrityError:
-            return Response(data={'msg': 'This username is already taken'}, status=status.HTTP_400_BAD_REQUEST)
-
 
     def patch(self, request):
         if request.user.is_authenticated:
@@ -90,16 +79,8 @@ class ProfileApiView(APIView):
         else:
             return Response(data={'msg': 'You must login!'}, status=status.HTTP_401_UNAUTHORIZED)
 
-class ProfileSuperUserApiView(APIView):
+class ProfileApiRegistrationView(APIView):
     permission_classes = []
-
-    def get(self, request):
-        if request.user.is_authenticated:
-            data = UserSerializer(request.user, many=False).data
-            return Response(data=data, status=status.HTTP_200_OK)
-        else:
-            return Response(data={'msg': 'You must login!'}, status=status.HTTP_401_UNAUTHORIZED)
-
     def post(self, request):
         from django.db.utils import IntegrityError
         username = request.data.get('username')
@@ -108,13 +89,12 @@ class ProfileSuperUserApiView(APIView):
         password = request.data.get('password')
         email = request.data.get('email')
         try:
-            user = User.objects.create_superuser(username=username, first_name=fn, last_name=last_name, password=password,
+            user = User.objects.create_user(username=username, first_name=fn, last_name=last_name, password=password,
                                             email=email)
             data = UserSerializer(user, many=False).data
             return Response(data=data, status=status.HTTP_201_CREATED)
         except IntegrityError:
             return Response(data={'msg': 'This username is already taken'}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 
