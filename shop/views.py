@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .serializers import *
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
@@ -10,8 +10,8 @@ from . filters import ProductFilter
 from rest_framework.filters import SearchFilter, OrderingFilter
 from . permissions import *
 from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly
-
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
 
 
 
@@ -96,6 +96,26 @@ class ProfileApiRegistrationView(APIView):
         except IntegrityError:
             return Response(data={'msg': 'This username is already taken'}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class CartViewSet(CreateModelMixin, GenericViewSet, RetrieveModelMixin, DestroyModelMixin):
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+
+
+class RatingViewSet(ModelViewSet):
+    serializer_class = RatingSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        # a = self.kwargs
+        # #pk = self.kwargs.get('pk')
+        # #return {'msg': 'test'}
+        return Rating.objects.filter(product_id=self.kwargs['product__pk'])
+
+    def get_serializer_context(self):
+        user_id = self.request.user.id
+        product_id = self.kwargs['product__pk']
+        return {'user_id': user_id, 'product_id': product_id}
 
 
 # class ProductApiView(APIView):
