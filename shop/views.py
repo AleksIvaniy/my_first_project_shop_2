@@ -11,16 +11,15 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from . permissions import *
 from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
-
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, ListModelMixin
 
 
 class ProductViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_class =ProductFilter
-    search_fields = ['name', 'description']
+    filterset_class = ProductFilter
+    search_fields = ['name', 'description', 'brand__name'] # brand
     ordering_fields = ['price']
     permission_classes = [IsAdminOrReadOnly]
 
@@ -97,25 +96,35 @@ class ProfileApiRegistrationView(APIView):
             return Response(data={'msg': 'This username is already taken'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CartViewSet(CreateModelMixin, GenericViewSet, RetrieveModelMixin, DestroyModelMixin):
+class CartViewSet(ListModelMixin, CreateModelMixin, GenericViewSet, RetrieveModelMixin, DestroyModelMixin):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
 
+class CartItemViewSet(ModelViewSet):
+    serializer_class = CartItemSerializer
+
+    def get_queryset(self):
+        return CartItems.objects.filter(cart_id=self.kwargs['cart__pk'])
 
 class RatingViewSet(ModelViewSet):
     serializer_class = RatingSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly, OwnerOrReadOnly]
 
+
+    def get(self):
+        return Response(data={"msg": "Product deleted!"}, status=status.HTTP_204_NO_CONTENT)
     def get_queryset(self):
-        # a = self.kwargs
-        # #pk = self.kwargs.get('pk')
-        # #return {'msg': 'test'}
         return Rating.objects.filter(product_id=self.kwargs['product__pk'])
 
     def get_serializer_context(self):
+        #a = self.request
+        list_rating = [i.rating for i in  Rating.objects.filter(product_id=self.kwargs['product__pk'])]
+        common_rating = sum(list_rating)/ len(list_rating)
         user_id = self.request.user.id
         product_id = self.kwargs['product__pk']
-        return {'user_id': user_id, 'product_id': product_id}
+        return {'user_id': user_id, 'product_id': product_id, 'common_rating': common_rating}
+
+
 
 
 # class ProductApiView(APIView):

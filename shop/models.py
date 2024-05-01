@@ -87,3 +87,5 @@ class Rating(models.Model):
 
     def __str__(self):
         return f"{self.user}'s {self.rating}-star rating for {self.product}"
+
+
