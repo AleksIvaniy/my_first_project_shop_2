@@ -13,15 +13,28 @@ class CategorySerializer(ModelSerializer):
         model = Category
         fields = '__all__'
 
+class RatingSimpleSerializer(ModelSerializer):
+    class Meta:
+        model = Rating
+        fields = ['rating']
 
 class ProductSerializer(ModelSerializer):
+    rating = RatingSimpleSerializer(many=True)
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = ['VIN', 'name', 'description', 'price', 'category', 'brand', 'color', 'rating']
 
     category = CategorySerializer()
     brand = BrandSerializer()
     color = StringRelatedField()
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['rating'] = []
+        for elem in instance.rating.all():
+            representation['rating'].append(elem.rating)
+        representation['rating'] = sum(representation['rating'])/len(representation['rating'])
+        return representation
 
 
 class UserSerializer(ModelSerializer):
@@ -73,10 +86,10 @@ class CartSerializer(ModelSerializer):
 
 class RatingSerializer(ModelSerializer):
     user =  UserUpdateSerializer(read_only=True)
-    cr = serializers.SerializerMethodField(method_name='common_rating')
+    #cr = serializers.SerializerMethodField(method_name='common_rating')
     class Meta:
         model = Rating
-        fields = ['id', 'rating', 'description', 'user', 'cr']
+        fields = ['id', 'rating', 'description', 'user']
 
     def create(self, validated_data):
         product_id = self.context['product_id']
@@ -84,8 +97,8 @@ class RatingSerializer(ModelSerializer):
         rating = Rating.objects.create(product_id=product_id, user_id=user_id, **self.validated_data)
         return rating
 
-    def common_rating(self, validated_data):
-        return self.context['common_rating']
+    # def common_rating(self, validated_data):
+    #     return self.context['common_rating']
 
 class AddCartItemSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField()
@@ -120,4 +133,17 @@ class UpdateCartItemSerializer(ModelSerializer):
     class Meta:
         model = CartItems
         fields = ['quantity']
+
+
+class OrderItemSerializer(ModelSerializer):
+    product = SimpleProductSerializer()
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product', 'quantity']
+
+class OrderSerializer(ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    class Meta:
+        model = Order
+        fields = ['id', 'placed_at', 'pending_status', 'owner', 'items']
 

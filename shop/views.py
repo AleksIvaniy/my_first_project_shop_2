@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from . filters import ProductFilter
 from rest_framework.filters import SearchFilter, OrderingFilter
 from . permissions import *
-from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, ListModelMixin
 
@@ -120,22 +120,27 @@ class RatingViewSet(ModelViewSet):
     serializer_class = RatingSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, OwnerOrReadOnly]
 
-
-    def get(self):
-        return Response(data={"msg": "Product deleted!"}, status=status.HTTP_204_NO_CONTENT)
     def get_queryset(self):
         return Rating.objects.filter(product_id=self.kwargs['product__pk'])
 
     def get_serializer_context(self):
         #a = self.request
         list_rating = [i.rating for i in  Rating.objects.filter(product_id=self.kwargs['product__pk'])]
-        common_rating = sum(list_rating)/ len(list_rating)
+        #common_rating = sum(list_rating)/ len(list_rating)
         user_id = self.request.user.id
         product_id = self.kwargs['product__pk']
-        return {'user_id': user_id, 'product_id': product_id, 'common_rating': common_rating}
+        return {'user_id': user_id, 'product_id': product_id}
 
 
+class OrderViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Order.objects.all()
+        return Order.objects.filter(owner=user)
 
 # class ProductApiView(APIView):
 #     permission_classes = []
