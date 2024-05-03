@@ -45,7 +45,7 @@ class SimpleProductSerializer(ModelSerializer):
 
 
 class CartItemSerializer(ModelSerializer):
-    product = SimpleProductSerializer()
+    product = SimpleProductSerializer(many=False)
     sub_total = serializers.SerializerMethodField(method_name='total')
 
     class Meta:
@@ -86,4 +86,38 @@ class RatingSerializer(ModelSerializer):
 
     def common_rating(self, validated_data):
         return self.context['common_rating']
+
+class AddCartItemSerializer(serializers.ModelSerializer):
+    product_id = serializers.IntegerField()
+
+    def validate_product_id(self, value):
+        if not Product.objects.filter(pk=value).exists():
+            raise serializers.ValidationError('There is no product associated with the given ID')
+        return value
+
+    def save(self, **kwargs):
+        cart_id = self.context['cart_id']
+        product_id = self.validated_data.get('product_id')
+        quantity = self.validated_data['quantity']
+
+        try:
+            cartitem = CartItems.objects.get(product_id=product_id, cart_id=cart_id)
+            cartitem.quantity += quantity
+            cartitem.save()
+
+            self.instance = cartitem
+
+        except:
+            self.instance = CartItems.objects.create(product_id=product_id, cart_id=cart_id, quantity=quantity)
+        return self.instance
+
+    class Meta:
+        model = CartItems
+        fields = ['id', 'product_id', 'quantity']
+
+class UpdateCartItemSerializer(ModelSerializer):
+    #id = serializers.IntegerField(read_only=True)
+    class Meta:
+        model = CartItems
+        fields = ['quantity']
 

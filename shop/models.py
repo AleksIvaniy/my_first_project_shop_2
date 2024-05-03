@@ -71,7 +71,7 @@ class Cart(models.Model):
 class CartItems(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, blank=True, null=True, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=True, null=True, related_name='cart_items')
-    quantity = models.IntegerField(default=0)
+    quantity = models.PositiveIntegerField(default=0)
 
 
 class Rating(models.Model):
@@ -87,5 +87,8 @@ class Rating(models.Model):
 
     def __str__(self):
         return f"{self.user}'s {self.rating}-star rating for {self.product}"
+
+
+
 
 
