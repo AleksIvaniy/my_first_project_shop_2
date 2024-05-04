@@ -2,6 +2,7 @@ from rest_framework.serializers import ModelSerializer, StringRelatedField
 from rest_framework import serializers
 from .models import *
 from django.contrib.auth.models import User
+from django.db import transaction
 
 class BrandSerializer(ModelSerializer):
     class Meta:
@@ -33,7 +34,10 @@ class ProductSerializer(ModelSerializer):
         representation['rating'] = []
         for elem in instance.rating.all():
             representation['rating'].append(elem.rating)
-        representation['rating'] = sum(representation['rating'])/len(representation['rating'])
+        if not sum(representation['rating']):
+            representation['rating'] = 0
+        else:
+            representation['rating'] = sum(representation['rating'])/len(representation['rating'])
         return representation
 
 
@@ -146,4 +150,17 @@ class OrderSerializer(ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'placed_at', 'pending_status', 'owner', 'items']
+
+class CreateOrderSerializer(serializers.Serializer):
+    cart_id = serializers.UUIDField()
+
+    def save(self, **kwargs):
+        with transaction.atomic():
+            cart_id = self.validated_data['cart_id']
+            user_id = self.context['user_id']
+            order = Order.objects.create(owner_id=user_id)
+            cartitems = CartItems.objects.filter(cart_id=cart_id)
+            orderitems = [OrderItem(order=order, product=item.product, quantity=item.quantity)for item in cartitems]
+            OrderItem.objects.bulk_create(orderitems)
+            Cart.objects.filter(id=cart_id).delete()
 
