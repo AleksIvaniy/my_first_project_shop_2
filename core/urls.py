@@ -18,10 +18,33 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+from rest_framework.permissions import AllowAny
+
+
+SchemaView = get_schema_view(
+    info=openapi.Info(
+        title='My_shop_project',
+        default_version='1.0',
+        description='This is shop project',
+        terms_of_service='',
+        contact=openapi.Contact(name='Alexandr Ivaniy', url='', email='ompas1703@gmail.com'),
+        license=openapi.License(name='License', url='')
+    ),
+    patterns=[
+        path('api/', include('shop.urls'))
+    ],
+    public=True,
+    permission_classes=[AllowAny, ]
+)
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('shop.urls'))
+    path('api/', include('shop.urls')),
+    path('swagger', SchemaView.with_ui())
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

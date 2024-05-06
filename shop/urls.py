@@ -23,6 +23,7 @@ urlpatterns = [
     path('user_registr', ProfileApiRegistrationView.as_view(), name='user_registr_url'),
     path("", include(product_router.urls)),
     path("", include(cart_router.urls)),
+    path('weather/<str:city>', WeatherApiView)
 ]
 
 urlpatterns += router.urls

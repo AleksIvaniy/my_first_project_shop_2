@@ -12,6 +12,56 @@ from . permissions import *
 from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, ListModelMixin
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+import datetime
+import json
+
+
+from django.core.serializers.json import DjangoJSONEncoder
+from django.http import JsonResponse
+
+
+class MyJsonResponse(JsonResponse):
+    def __init__(self, data, encoder=DjangoJSONEncoder, safe=True, **kwargs):
+        json_dumps_params = dict(ensure_ascii=False)
+        super().__init__(data, encoder, safe, json_dumps_params, **kwargs)
+
+def WeatherApiView(request, city):
+    import requests
+    api_url = f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid=48ab3092d8fce2319f231ab8b9717278&units=metric'
+    response = requests.get(api_url)
+    data = response.json()
+
+    code_to_smile = {
+        "Clear": "Ясно \U00002600",
+        "Clouds": "Облачно \U00002601",
+        "Rain": "Дождь \U00002614",
+        "Drizzle": "Дождь \U00002614",
+        "Thunderstorm": "Гроза \U000026A1",
+        "Snow": "Снег \U0001F328",
+        "Mist": "Туман \U0001F32B"
+    }
+
+    d = {}
+    weather_descript = data['weather'][0]['main']
+    if weather_descript in code_to_smile:
+        wd = code_to_smile[weather_descript]
+    else:
+        wd = 'Посмотри сам в окно, я не знаю что там происходит'
+    # pprint(data)
+    d['descr'] = wd
+    city = data['name']
+    d['city'] = city
+    cur_weather = str(data['main']['temp']) + "°C"
+    d['cur_weather'] = cur_weather
+    humidity = str(data['main']['humidity']) + '%'
+    d['humidity'] = humidity
+    pressure = str(data['main']['pressure']) + 'мм.рт.ст'
+    d['pressure'] = pressure
+    wind = str(data['wind']['speed']) + 'м/с'
+    d['wind'] =  wind
+    return MyJsonResponse(d)
 
 
 class ProductViewSet(ModelViewSet):

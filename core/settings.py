@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'shop',
     'rest_framework',
     'django_filters',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
