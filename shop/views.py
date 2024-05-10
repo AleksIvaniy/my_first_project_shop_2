@@ -12,15 +12,25 @@ from . permissions import *
 from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, ListModelMixin
-from rest_framework.decorators import api_view
-from django.http import JsonResponse
-import datetime
-import json
+from drf_yasg.utils import swagger_auto_schema
 
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 
+
+
+# class AuthApiView(APIView):
+#     permission_classes = []
+#     def post(self, request):
+#         from django.contrib.auth import authenticate, login
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+#         user = authenticate(username=username, password=password)
+#         if user is not None:
+#             login(request, user)
+#             return Response(data={'msg': 'logined successfully'}, status=status.HTTP_200_OK)
+#         return Response(status=status.HTTP_401_UNAUTHORIZED)
 
 class MyJsonResponse(JsonResponse):
     def __init__(self, data, encoder=DjangoJSONEncoder, safe=True, **kwargs):
@@ -65,26 +75,37 @@ def WeatherApiView(request, city):
 
 
 class ProductViewSet(ModelViewSet):
+    http_method_names = ['get', 'post', 'patch', 'delete']
     queryset = Product.objects.all()
-    serializer_class = ProductSerializer
+    # serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductFilter
     search_fields = ['name', 'description', 'brand__name'] # brand
     ordering_fields = ['price']
     permission_classes = [IsAdminOrReadOnly]
 
-    def patch(self, request, pk):
-        product = get_object_or_404(Product, id=pk)
-        serializer = ProductSerializer(product, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    def get_serializer_class(self):
+        if self.request.method == 'POST' or self.request.method == 'PATCH':
+            return ProductPostSerializer
+        return ProductSerializer
 
-    def post(self, request):
-        serializer = ProductSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+    # @swagger_auto_schema(operation_summary="Post product", request_body=ProductSerializer)
+    # def post(self, request, *args, **kwargs):
+    #     return super().post(request, *args, **kwargs)
+
+
+    # def patch(self, request, pk):
+    #     product = get_object_or_404(Product, id=pk)
+    #     serializer = ProductSerializer(product, data=request.data, partial=True)
+    #     serializer.is_valid(raise_exception=True)
+    #     serializer.save()
+    #     return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    # def post(self, request):
+    #     serializer = ProductSerializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     serializer.save()
+    #     return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
 # class AuthApiView(APIView):
 #     permission_classes = []
@@ -151,8 +172,6 @@ class CartViewSet(ListModelMixin, CreateModelMixin, GenericViewSet, RetrieveMode
     serializer_class = CartSerializer
 
 class CartItemViewSet(ModelViewSet):
-    #serializer_class = CartItemSerializer
-
     http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_queryset(self):
@@ -174,9 +193,6 @@ class RatingViewSet(ModelViewSet):
         return Rating.objects.filter(product_id=self.kwargs['product__pk'])
 
     def get_serializer_context(self):
-        #a = self.request
-        list_rating = [i.rating for i in  Rating.objects.filter(product_id=self.kwargs['product__pk'])]
-        #common_rating = sum(list_rating)/ len(list_rating)
         user_id = self.request.user.id
         product_id = self.kwargs['product__pk']
         return {'user_id': user_id, 'product_id': product_id}
@@ -234,3 +250,31 @@ class OrderViewSet(ModelViewSet):
 #         product = get_object_or_404(Product, id=pk)
 #         product.delete()
 #         return Response(data={"msg": "Product deleted!"}, status=status.HTTP_204_NO_CONTENT)
+
+from ipware import get_client_ip
+import urllib, json
+
+def get_user_ip(request):
+    client_ip, is_routable = get_client_ip(request)
+    if client_ip is None:
+        client_ip="0.0.0.0"
+    else:
+        if is_routable:
+            ip_type="Public"
+        else:
+            ip_type="Private"
+    ip_address = '106.220.90.88'
+    try:
+        url = 'https://api.ipfind.com/?ip=' + client_ip
+        response = urllib.request.urlopen(url)
+        data1 = json.loads(response.read())
+        longitude=data1["longitude"]
+        latitude=data1["latitude"]
+    except:
+        url = 'https://api.ipfind.com/?ip=' + ip_address
+        response = urllib.request.urlopen(url)
+        data1 = json.loads(response.read())
+        longitude=data1["longitude"]
+        latitude=data1["latitude"]
+
+    return JsonResponse({'longitude': longitude, 'latitude': latitude})

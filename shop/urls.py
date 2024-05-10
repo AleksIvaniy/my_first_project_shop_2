@@ -19,11 +19,13 @@ cart_router.register('items', CartItemViewSet, basename='cart-items')
 
 urlpatterns = [
     path('profile', ProfileApiView.as_view(), name='profile_url'),
+    #path('login', AuthApiView.as_view(), name='login_url'),
     path('auth/', include('rest_framework.urls')),
     path('user_registr', ProfileApiRegistrationView.as_view(), name='user_registr_url'),
     path("", include(product_router.urls)),
     path("", include(cart_router.urls)),
-    path('weather/<str:city>', WeatherApiView)
+    path('weather/<str:city>', WeatherApiView),
+    path('ip_user', get_user_ip)
 ]
 
 urlpatterns += router.urls

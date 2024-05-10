@@ -43,9 +43,9 @@ class Product(models.Model):
     description = models.TextField()
     image = models.ImageField(upload_to='products')
     price = models.DecimalField(max_digits=12, decimal_places=2)
-    category = models.ForeignKey('Category', on_delete=models.CASCADE)
-    brand = models.ForeignKey('Brand', on_delete=models.CASCADE)
-    color = models.ForeignKey('Color', on_delete=models.CASCADE)
+    category = models.ForeignKey('Category', on_delete=models.CASCADE, null=True)
+    brand = models.ForeignKey('Brand', on_delete=models.CASCADE, null=True)
+    color = models.ForeignKey('Color', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f"{self.name} - {self.VIN}"

@@ -14,20 +14,30 @@ class CategorySerializer(ModelSerializer):
         model = Category
         fields = '__all__'
 
+class ColorSerializer(ModelSerializer):
+    class Meta:
+        model = Color
+        fields = '__all__'
+
 class RatingSimpleSerializer(ModelSerializer):
     class Meta:
         model = Rating
         fields = ['rating']
 
-class ProductSerializer(ModelSerializer):
-    rating = RatingSimpleSerializer(many=True)
+class ProductPostSerializer(ModelSerializer):
     class Meta:
         model = Product
-        fields = ['VIN', 'name', 'description', 'price', 'category', 'brand', 'color', 'rating']
+        fields = ['VIN', 'name', 'description', 'price', 'category', 'brand', 'color']
+
+class ProductSerializer(ModelSerializer):
+    rating = RatingSimpleSerializer(many=True, read_only=True)
+    class Meta:
+        model = Product
+        fields = ['id', 'VIN', 'name', 'description', 'price', 'category', 'brand', 'color', 'rating']
 
     category = CategorySerializer()
     brand = BrandSerializer()
-    color = StringRelatedField()
+    color = ColorSerializer()
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -90,7 +100,6 @@ class CartSerializer(ModelSerializer):
 
 class RatingSerializer(ModelSerializer):
     user =  UserUpdateSerializer(read_only=True)
-    #cr = serializers.SerializerMethodField(method_name='common_rating')
     class Meta:
         model = Rating
         fields = ['id', 'rating', 'description', 'user']

@@ -7,5 +7,5 @@ class ProductFilter(FilterSet):
         fields = {
             'color':['exact'],
             'category_id': ['exact'],
-            'price': ['gt', 'lt']
+            'price': ['gte', 'lte']
         }
