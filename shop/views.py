@@ -170,18 +170,25 @@ class ProfileApiRegistrationView(APIView):
 class CartViewSet(ListModelMixin, CreateModelMixin, GenericViewSet, RetrieveModelMixin, DestroyModelMixin):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
+    permission_classes = [IsOwnerOrAdmin]
+
+    def get_serializer_context(self):
+        user_id = self.request.user.id
+        return {'user_id': user_id}
 
 class CartItemViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_queryset(self):
         return CartItems.objects.filter(cart_id=self.kwargs['cart__pk'])
+
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return AddCartItemSerializer
         elif self.request.method == 'PATCH':
             return UpdateCartItemSerializer
         return CartItemSerializer
+
     def get_serializer_context(self):
         return {'cart_id': self.kwargs['cart__pk']}
 
@@ -199,7 +206,7 @@ class RatingViewSet(ModelViewSet):
 
 
 class OrderViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
 
     def get_serializer_class(self):
         if self.request.method == 'POST':

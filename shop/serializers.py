@@ -87,10 +87,15 @@ class CartSerializer(ModelSerializer):
     id = serializers.UUIDField(read_only=True)
     items = CartItemSerializer(many=True, read_only=True)
     grand_total = serializers.SerializerMethodField(method_name='main_total')
-
+    user = serializers.CharField(read_only=True)
     class Meta:
         model = Cart
-        fields = ['id', 'items', 'grand_total']
+        fields = ['id', 'items', 'grand_total', 'user']
+
+    def create(self, validated_data):
+        user_id = self.context['user_id']
+        rating = Cart.objects.create(user_id=user_id, **self.validated_data)
+        return rating
 
     def main_total(self, cart: Cart):
         items = cart.items.all()
